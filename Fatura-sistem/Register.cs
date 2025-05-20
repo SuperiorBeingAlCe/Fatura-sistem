@@ -102,113 +102,93 @@ namespace Fatura_sistem
 
         private void button1_Click(object sender, EventArgs e)
         {
-            hasUpper = textBox3.Text.Any(char.IsUpper);
-            hasLower = textBox3.Text.Any(char.IsLower);
-            hasDigit = textBox3.Text.Any(char.IsDigit);
-            hasSpecial = textBox3.Text.Any(ch => "!@#$%^&*()_+[]{};':\"\\|,.<>?/`~".Contains(ch));
-            hasMinLength = textBox3.Text.Length >= 8;
+    if (string.IsNullOrWhiteSpace(textBox1.Text))
+    {
+        ShowWarning("Kullanıcı adı boş bırakılamaz!");
+        return;
+    }
 
-            if (!string.IsNullOrEmpty(textBox1.Text))
+    if (string.IsNullOrWhiteSpace(textBox2.Text))
+    {
+        ShowWarning("E-mail alanı boş bırakılamaz!");
+        return;
+    }
+
+    string email = textBox2.Text;
+    string emailPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+    if (!Regex.IsMatch(email, emailPattern))
+    {
+        ShowWarning("E-mail adresi geçerli değil!\n\nDoğru format:\n - isim@site.com");
+        return;
+    }
+
+    if (string.IsNullOrWhiteSpace(textBox3.Text) || string.IsNullOrWhiteSpace(textBox4.Text))
+    {
+        ShowWarning("Şifre ve şifre tekrar alanı boş bırakılamaz!");
+        return;
+    }
+
+    string password = textBox3.Text;
+    if (!IsValidPassword(password))
+    {
+        ShowWarning(
+            "Şifre kurallarına uymuyor!\n\n" +
+            "- En az 8 karakter\n" +
+            "- En az 1 büyük harf\n" +
+            "- En az 1 küçük harf\n" +
+            "- En az 1 rakam\n" +
+            "\b- Özel karakter kullanma\b  (!@#$%^&*)"
+        );
+        return;
+    }
+
+    if (comboBox1.SelectedIndex < 18)
+    {
+        ShowWarning("18 Yaşından küçükler kayıt olamaz!");
+        return;
+    }
+
+    string path = Path.Combine(Application.StartupPath, "Users.xml");
+    string username = textBox1.Text;
+    string age = comboBox1.SelectedItem.ToString();
+    string gender = radioButton1.Checked ? "Erkek" : "Kadın";
+
+    try
+    {
+        List<User> users = new List<User>();
+
+        if (File.Exists(path))
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(List<User>));
+            using (FileStream fs = new FileStream(path, FileMode.Open))
             {
-                if (!string.IsNullOrEmpty(textBox2.Text)) // E-mail
-                {
-                    string email = textBox2.Text;
-                    string pattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
-
-                    if (Regex.IsMatch(email, pattern)) // ✅ E-mail geçerli mi?
-                    {
-                        if (!string.IsNullOrEmpty(textBox3.Text) && !string.IsNullOrEmpty(textBox4.Text)) // Şifre ve tekrar
-                        {
-                            if (hasUpper && hasLower && hasDigit && hasSpecial==false && hasMinLength) // ✅ Şifre kuralları
-                            {
-                                if (comboBox1.SelectedIndex >= 18) // ✅ Yaş kontrolü
-                                {
-                                    string path = Path.Combine(Application.StartupPath, "Users.xml");
-                                    string username = textBox1.Text;
-                                    string password = textBox3.Text;
-                                    string age = comboBox1.SelectedItem.ToString();
-                                    string gender;
-                                    if (radioButton1.Checked) { gender = "Erkek"; } else { gender = "Kadın"; }
-
-                                    try
-                                    {
-                                        List<User> users = new List<User>();
-
-                                        if (File.Exists(path))
-                                        {
-                                            XmlSerializer serializer = new XmlSerializer(typeof(List<User>));
-                                            using (FileStream fs = new FileStream(path, FileMode.Open))
-                                            {
-                                                users = (List<User>)serializer.Deserialize(fs);
-                                            }
-                                        }
-
-                                        User newUser = new User(username, email, password, age, gender);
-                                        users.Add(newUser);
-
-                                        XmlSerializer writer = new XmlSerializer(typeof(List<User>));
-                                        using (FileStream fs = new FileStream(path, FileMode.Create))
-                                        {
-                                            writer.Serialize(fs, users);
-                                        }
-
-                                        MessageBox.Show("Kayıt başarılı!", "başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                                        if (mainMenu != null)
-                                        {
-                                            mainMenu.Show();
-                                            this.Close();
-                                        }
-                                        else
-                                        {
-                                            MessageBox.Show("bir hata oluştu");
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        MessageBox.Show("HATA: " + ex.Message);
-                                    }
-                                }
-                                else
-                                {
-                                    MessageBox.Show("18 Yaşından küçükler kayıt olamaz!", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                                }
-                            }
-                            else
-                            {
-                                MessageBox.Show(
-                                   "Şifre kurallarına uymuyor!\n\n" +
-                                   "- En az 8 karakter\n" +
-                                   "- En az 1 büyük harf\n" +
-                                   "- En az 1 küçük harf\n" +
-                                   "- En az 1 rakam\n" +
-                                   "\b- Özel karakter kullanma\b  (!@#$%^&*)",
-                                   "Geçersiz Şifre",
-                                   MessageBoxButtons.OK,
-                                   MessageBoxIcon.Warning
-                               );
-                            }
-                        }
-                        else
-                        {
-                            MessageBox.Show("Şifre ve şifre tekrar alanı boş bırakılamaz!", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("E-mail adresi geçerli değil!\n\nDoğru format:\n - isim@site.com", "Geçersiz E-mail", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("E-mail alanı boş bırakılamaz!", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
+                users = (List<User>)serializer.Deserialize(fs);
             }
-            else
-            {
-                MessageBox.Show("Kullanıcı adı boş bırakılamaz!", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        } 
+        }
+
+        users.Add(new User(username, email, password, age, gender));
+
+        XmlSerializer writer = new XmlSerializer(typeof(List<User>));
+        using (FileStream fs = new FileStream(path, FileMode.Create))
+        {
+            writer.Serialize(fs, users);
+        }
+
+        MessageBox.Show("Kayıt başarılı!", "Başarılı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+        mainMenu?.Show();
+        this.Close();
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show("HATA: " + ex.Message);
+    }
+}
+
+private void ShowWarning(string message)
+{
+    MessageBox.Show(message, "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+}
 
         private void textBox3_TextChanged(object sender, EventArgs e)
         {
